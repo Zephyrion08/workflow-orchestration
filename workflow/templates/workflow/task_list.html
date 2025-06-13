@@ -1,0 +1,27 @@
+{% extends 'accounts/base.html' %}
+{% block title %}Tasks{% endblock %}
+{% block content %}
+<h2>Task List</h2>
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Title</th>
+      <th>Assigned To</th>
+      <th>Status</th>
+      <th>Due Date</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for task in tasks %}
+    <tr>
+      <td>{{ task.title }}</td>
+      <td>{{ task.assigned_to.username }}</td>
+      <td>{{ task.get_status_display }}</td>
+      <td>{{ task.due_date }}</td>
+      <td><a href="{% url 'update_task_status' task.id %}" class="btn btn-sm btn-outline-secondary">Update</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,7 @@
+{% extends 'accounts/base.html' %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<h2>Welcome, {{ request.user.name }}</h2>
+<p>Your role: {{ request.user.groups.first.name|default:"Member" }}</p>
+<a href="{% url 'task_list' %}" class="btn btn-primary mt-3">My Tasks</a>
+{% endblock %}

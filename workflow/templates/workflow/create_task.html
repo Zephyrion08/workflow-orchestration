@@ -1,0 +1,10 @@
+{% extends 'accounts/base.html' %}
+{% block title %}Create Task{% endblock %}
+{% block content %}
+<h2>Create Task</h2>
+<form method="post" class="w-50">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit" class="btn btn-primary">Create</button>
+</form>
+{% endblock %}

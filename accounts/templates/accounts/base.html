@@ -24,7 +24,16 @@
         </ul>
         <span class="navbar-text text-white me-3">
             {% if user.is_authenticated %}
-                {{ user.name }} ({{ user.groups.first.name|default:"Member" }})
+            {{ user.username }} (
+                {% if user.is_superuser %}
+                {{ user.groups.first.name }}
+                  Admin
+                {% elif user.groups.first %}
+                  {{ user.groups.first.name }}
+                {% else %}
+                  Member
+                {% endif %}
+              )
             {% endif %}
         </span>
         {% if user.is_authenticated %}

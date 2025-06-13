@@ -1,7 +1,17 @@
 {% extends 'accounts/base.html' %}
 {% block title %}Home{% endblock %}
 {% block content %}
-<h2>Welcome, {{ request.user.name }}</h2>
-<p>Your role: {{ request.user.groups.first.name|default:"Member" }}</p>
+
+<h2>Welcome, {{ request.user.username }}</h2>
+<p>Your role:
+  {% if request.user.is_superuser %}
+    Admin
+  {% elif request.user.groups.first %}
+    {{ request.user.groups.first.name }}
+  {% else %}
+    Member
+  {% endif %}
+</p>
+
 <a href="{% url 'task_list' %}" class="btn btn-primary mt-3">My Tasks</a>
 {% endblock %}

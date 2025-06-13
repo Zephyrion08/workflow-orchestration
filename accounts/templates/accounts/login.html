@@ -113,18 +113,25 @@
           color: #000;
           font-weight: 600;
       }</style>
-    <title>Login | Ludiflex</title>
+    <title>Login</title>
 </head>
 <body>
+    <form method="post">
+        {% csrf_token %}
     <div class="login-box">
         <div class="login-header">
             <header>Login</header>
         </div>
+        {% if messages %}
+        {% for message in messages %}
+          <div class="message">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
         <div class="input-box">
-            <input type="text" class="input-field" placeholder="Email" autocomplete="off" required>
+            <input type="text" name="username" class="input-field" placeholder="Username" required autocomplete="off">
         </div>
         <div class="input-box">
-            <input type="password" class="input-field" placeholder="Password" autocomplete="off" required>
+            <input type="password" name="password" class="input-field" placeholder="Password" required autocomplete="off">  
         </div>
         <div class="forgot">
             <section>
@@ -143,5 +150,6 @@
             <p>Don't have account? <a href="{% url 'signup_request' %}">Sign Up</a></p>
         </div>
     </div>
+    </form>
 </body>
 </html>

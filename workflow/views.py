@@ -36,3 +36,25 @@ def update_task_status(request, task_id):
             task.save()
             return redirect('task_list')
     return render(request, 'workflow/update_task.html', {'task': task})
+
+
+@login_required
+def dashboard(request):
+    user = request.user
+    tasks = Task.objects.filter(assigned_to=user)  # fix here
+    total_tasks = tasks.count()
+    pending_tasks = tasks.filter(status='pending').count()
+    completed_tasks = tasks.filter(status='completed').count()
+
+    notifications = [
+        "Welcome back!",
+        f"You have {pending_tasks} pending tasks.",
+    ]
+
+    context = {
+        'total_tasks': total_tasks,
+        'pending_tasks': pending_tasks,
+        'completed_tasks': completed_tasks,
+        'notifications': notifications,
+    }
+    return render(request, 'workflow/dashboard.html', context)

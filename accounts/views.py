@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .forms import SignupRequestForm
+from .forms import SignupRequestForm, UserProfileForm
 from .models import SignupRequest, CustomUser
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import Group
@@ -8,10 +8,26 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
+from workflow.models import Task
+from .models import CustomUser
+from django.contrib.auth.models import Group
+
 
 @login_required
 def home(request):
-    return render(request, 'accounts/home.html')
+    user = request.user
+    group = user.groups.first()  # Assumes one group per user
+
+    if user.is_superuser or (group and group.name.lower() == 'manager'):
+        # Admins and Managers see all 'todo' or 'in_progress' tasks
+        pending_tasks = Task.objects.filter(status__in=['todo', 'in_progress'])
+    else:
+        # Members see only their own 'todo' or 'in_progress' tasks
+        pending_tasks = Task.objects.filter(status__in=['todo', 'in_progress'], assigned_to=user)
+
+    return render(request, 'accounts/home.html', {
+        'pending_tasks_count': pending_tasks.count()
+    })
 
 def signup_request_view(request):
     if request.method == 'POST':
@@ -111,3 +127,43 @@ def change_password_view(request):
             return redirect('login')
 
     return render(request, 'accounts/change_password.html')
+
+
+@login_required
+def profile_view(request):
+    user = request.user
+    return render(request, 'accounts/profile.html', {'user': user})
+
+
+
+@login_required
+def profile_edit_view(request):
+    user = request.user
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Profile updated successfully.")
+            return redirect('profile')
+    else:
+        form = UserProfileForm(instance=user)
+    return render(request, 'accounts/profile_edit.html', {'form': form})
+
+
+def is_admin_or_manager(user):
+    return user.is_superuser or user.groups.filter(name='Manager').exists()
+
+@login_required
+@user_passes_test(is_admin_or_manager)
+def user_list(request):
+    users = CustomUser.objects.filter(is_superuser=False)
+    return render(request, 'accounts/user_list.html', {'users': users})
+
+
+@login_required
+@user_passes_test(is_admin)
+def delete_signup_request(request, request_id):
+    signup_request = get_object_or_404(SignupRequest, id=request_id)
+    signup_request.delete()
+    messages.success(request, "Signup request deleted successfully.")
+    return redirect('pending_requests')

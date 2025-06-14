@@ -1,0 +1,76 @@
+{% extends 'accounts/base.html' %}
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-lg rounded-4 p-4 mx-auto" style="max-width: 650px;">
+    
+    <div class="d-flex align-items-center mb-4">
+      <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px; font-size: 24px;">
+        {% if user.is_superuser %}
+          {{ user.username|slice:":1"|upper }}
+        {% else %}
+          {{ user.name|slice:":1"|upper }}
+        {% endif %}
+      </div>
+      <div>
+        <h3 class="mb-0">
+          {% if user.is_superuser %}
+            {{ user.username|title }}
+          {% else %}
+            {{ user.name|title }}
+          {% endif %}
+        </h3>
+        {% if not user.is_superuser %}
+          Employee Id : <small class="text-muted">{{ user.employee_id }}</small>
+        {% endif %}
+      </div>
+    </div>
+
+    <hr>
+    
+    <table class="table table-borderless">
+      <tr>
+        <th class="text-muted">Email</th>
+        <td>{{ user.email|default:"—" }}</td>
+      </tr>
+      <tr>
+        <th class="text-muted">Department</th>
+        <td>{{ user.department|default:"—" }}</td>
+      </tr>
+      <tr>
+        <th class="text-muted">Phone</th>
+        <td>{{ user.phone_number|default:"—" }}</td>
+      </tr>
+      <tr>
+        <th class="text-muted">Role</th>
+        <td>
+          {% if user.is_superuser %}
+            <span class="badge bg-danger">Admin</span>
+          {% elif user.groups.first %}
+            <span class="badge bg-info">{{ user.groups.first.name }}</span>
+          {% else %}
+            <span class="badge bg-secondary">Member</span>
+          {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <th class="text-muted">Last Login</th>
+        <td>{{ user.last_login|date:"M d, Y H:i" }}</td>
+      </tr>
+    </table>
+
+    <div class="d-flex justify-content-between mt-4">
+      {% if not user.is_superuser %}
+        <a href="{% url 'profile_edit' %}" class="btn btn-primary px-4">
+          ✏️ Edit Profile
+        </a>
+      {% endif %}
+      <a href="{% url 'change_password' %}" class="btn btn-outline-primary px-4">
+        🔒 Change Password
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

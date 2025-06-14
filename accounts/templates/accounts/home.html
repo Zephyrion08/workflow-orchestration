@@ -1,17 +1,60 @@
 {% extends 'accounts/base.html' %}
 {% block title %}Home{% endblock %}
+
 {% block content %}
+<div class="container mt-5">
+  <div class="card shadow-sm p-4">
+    <div class="d-flex align-items-center mb-3">
+      <div class="initial-circle member-circle fs-3 me-3" style="width:60px; height:60px;">
+        {{ request.user.username|first|upper }}
+      </div>
+      <div>
+        <h3>
+          {% now "H" as hour %}
+          {% if hour < "12" %}
+            Good Morning,
+          {% elif hour < "18" %}
+            Good Afternoon,
+          {% else %}
+            Good Evening,
+          {% endif %}
 
-<h2>Welcome, {{ request.user.username }}</h2>
-<p>Your role:
-  {% if request.user.is_superuser %}
-    Admin
-  {% elif request.user.groups.first %}
-    {{ request.user.groups.first.name }}
-  {% else %}
-    Member
-  {% endif %}
-</p>
+          {{ request.user.get_full_name|default:request.user.username }}!
+        </h3>
+        <p class="text-muted">Welcome back to Workflow Orchestrator.</p>
+      </div>
+    </div>
 
-<a href="{% url 'task_list' %}" class="btn btn-primary mt-3">My Tasks</a>
+    <p>Your role: 
+      {% if request.user.is_superuser %}
+        <span class="badge bg-danger">Admin</span>
+      {% elif request.user.groups.first %}
+        <span class="badge bg-info">{{ request.user.groups.first.name }}</span>
+      {% else %}
+        <span class="badge bg-secondary">Member</span>
+      {% endif %}
+    </p>
+
+    <div class="mt-4">
+      <a href="{% url 'dashboard' %}" class="btn btn-primary me-2">Go to Dashboard</a>
+      <a href="{% url 'profile' %}" class="btn btn-outline-secondary me-2">Update Profile</a>
+      
+    </div>
+
+    <!-- Optional: Add some summary info -->
+    <div class="mt-5">
+      <h5>Summary</h5>
+      <ul class="list-group">
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          Pending Tasks
+          <span class="badge bg-primary rounded-pill">{{ pending_tasks_count|default:"0" }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          Last Login
+          <span>{{ request.user.last_login|date:"M d, Y H:i" }}</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
 {% endblock %}

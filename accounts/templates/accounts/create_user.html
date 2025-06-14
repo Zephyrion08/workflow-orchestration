@@ -1,25 +1,38 @@
 {% extends 'accounts/base.html' %}
 {% block title %}Create User{% endblock %}
+
 {% block content %}
-<h2>Create User for {{ signup_req.name }} ({{ signup_req.employee_id }})</h2>
-<form method="post" class="w-50">
+<h2 class="mb-4">Create User for {{ signup_req.name }} ({{ signup_req.employee_id }})</h2>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+{% endif %}
+
+<form method="post" class="w-50 mx-auto">
   {% csrf_token %}
+  
   <div class="mb-3">
-    <label>Username</label>
-    <input type="text" name="username" class="form-control" required>
+    <label for="id_username" class="form-label">Username</label>
+    <input type="text" id="id_username" name="username" class="form-control" required autofocus>
   </div>
+  
   <div class="mb-3">
-    <label>Password</label>
-    <input type="password" name="password" class="form-control" required>
+    <label for="id_password" class="form-label">Password</label>
+    <input type="password" id="id_password" name="password" class="form-control" required>
   </div>
+  
   <div class="mb-3">
-    <label>Role</label>
-    <select name="role" class="form-select">
+    <label for="id_role" class="form-label">Role</label>
+    <select id="id_role" name="role" class="form-select" required>
       <option value="Member" selected>Member</option>
       <option value="Manager">Manager</option>
       <option value="Admin">Admin</option>
     </select>
   </div>
+  
   <button type="submit" class="btn btn-success">Create User</button>
+  <a href="{% url 'pending_requests' %}" class="btn btn-secondary ms-2">Cancel</a>
 </form>
 {% endblock %}

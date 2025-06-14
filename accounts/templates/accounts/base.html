@@ -2,53 +2,181 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>{% block title %}Workflow Orchestrator{% endblock %}</title>
     {% load static %}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <style>
+        /* Profile initial circles */
+        .initial-circle {
+            width: 40px;
+            height: 40px;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 700;
+            font-size: 20px;
+            text-transform: uppercase;
+            transition: filter 0.2s ease;
+        }
+        .initial-circle:hover {
+            filter: brightness(0.85);
+            cursor: pointer;
+        }
+
+        .admin-circle {
+            background-color: #dc3545; /* Bootstrap Red */
+        }
+        .manager-circle {
+            background-color: #ffc107; /* Bootstrap Yellow */
+            color: #212529; /* Dark text for contrast */
+        }
+        .member-circle {
+            background-color: #0d6efd; /* Bootstrap Blue */
+        }
+
+        /* Navbar tweaks */
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            letter-spacing: 0.05em;
+        }
+        .nav-link {
+            font-weight: 500;
+            font-size: 1rem;
+            transition: color 0.2s ease;
+        }
+        .nav-link:hover,
+        .nav-link:focus {
+            color: #ffc107; /* Highlight color */
+            text-decoration: underline;
+        }
+
+        /* Container padding for better spacing */
+        .container.mt-4 {
+            padding-top: 1.5rem;
+            padding-bottom: 1.5rem;
+        }
+
+        /* Alerts */
+        .alert {
+            font-weight: 500;
+        }
+    </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
-    <a class="navbar-brand" href="{% url 'home' %}">Workflow</a>
-    <div class="collapse navbar-collapse">
-        <ul class="navbar-nav me-auto">
-            {% if user.is_authenticated %}
-                <li class="nav-item"><a class="nav-link" href="{% url 'task_list' %}">My Tasks</a></li>
-                {% if user.is_superuser or user.groups.first.name == 'Manager' %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'create_task' %}">Create Task</a></li>
-                {% endif %}
-                {% if user.is_superuser %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'pending_requests' %}">Pending Requests</a></li>
-                {% endif %}
-            {% endif %}
-        </ul>
-        <span class="navbar-text text-white me-3">
-            {% if user.is_authenticated %}
-            {{ user.username }} (
-                {% if user.is_superuser %}
-                {{ user.groups.first.name }}
-                  Admin
-                {% elif user.groups.first %}
-                  {{ user.groups.first.name }}
-                {% else %}
-                  Member
-                {% endif %}
-              )
-            {% endif %}
-        </span>
-        {% if user.is_authenticated %}
-            <a class="btn btn-outline-light btn-sm" href="{% url 'logout' %}">Logout</a>
-        {% endif %}
-    </div>
-</nav>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
+        <a class="navbar-brand" href="{% url 'home' %}">Workflow</a>
 
-<div class="container mt-4">
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-        {% endfor %}
-    {% endif %}
-    {% block content %}{% endblock %}
-</div>
+        <!-- Mobile toggler -->
+        <button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarContent"
+            aria-controls="navbarContent"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+        >
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarContent">
+            <ul class="navbar-nav me-auto">
+                {% if user.is_authenticated %}
+                <li class="nav-item">
+                  {% if user.is_superuser %}
+                    <a class="nav-link" href="{% url 'task_list' %}">Task List</a>
+                  {% else %}
+                    <a class="nav-link" href="{% url 'task_list' %}">My Tasks</a>
+                  {% endif %}
+                </li>
+
+                    {% with user.groups.first as first_group %}
+                    {% if user.is_superuser or first_group %}
+                        {% if user.is_superuser or first_group.name == 'Manager' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'create_task' %}">Create Task</a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                    {% endwith %}
+
+                    {% if user.is_superuser %}
+                      <li class="nav-item position-relative">
+                        <a class="nav-link" href="{% url 'pending_requests' %}">
+                          Pending Requests
+                      {% if pending_requests_count > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            {{ pending_requests_count }}
+                            </span>
+                          {% endif %}
+                        </a>
+                      </li>
+                    {% endif %}
+
+
+                    
+                    {% if user.is_superuser or first_group.name == 'Manager' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'user_list' %}"> User List</a>
+                        </li>
+                    {% endif %}
+                    
+                {% endif %}
+            </ul>
+
+            {% if user.is_authenticated %}
+            {% with user.groups.first as first_group %}
+                <div class="dropdown">
+                    <a
+                        class="nav-link dropdown-toggle d-flex align-items-center"
+                        href="#"
+                        id="profileDropdown"
+                        role="button"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                    >
+                        <div
+                            class="initial-circle
+                            {% if user.is_superuser %}
+                                admin-circle
+                            {% elif first_group and first_group.name == 'Manager' %}
+                                manager-circle
+                            {% else %}
+                                member-circle
+                            {% endif %}"
+                        >
+                            {{ user.get_full_name|default:user.username|slice:":1"|upper }}
+                        </div>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+                        <li><a class="dropdown-item" href="{% url 'profile' %}">🧑 Profile</a></li>
+                        <li><a class="dropdown-item" href="{% url 'change_password' %}">🔐 Change Password</a></li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li><a class="dropdown-item text-danger" href="{% url 'logout' %}">🚪 Logout</a></li>
+                    </ul>
+                </div>
+            {% endwith %}
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="container mt-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -41,10 +41,17 @@ def update_task_status(request, task_id):
 @login_required
 def dashboard(request):
     user = request.user
-    tasks = Task.objects.filter(assigned_to=user)  # fix here
+
+    if user.is_superuser:
+        # Admin sees all tasks
+        tasks = Task.objects.all()
+    else:
+        # Regular user sees only their assigned tasks
+        tasks = Task.objects.filter(assigned_to=user)
+
     total_tasks = tasks.count()
-    pending_tasks = tasks.filter(status='pending').count()
-    completed_tasks = tasks.filter(status='completed').count()
+    pending_tasks = Task.objects.filter(status__in=['todo', 'in_progress']).count()
+    completed_tasks = tasks.filter(status__iexact='done').count()
 
     notifications = [
         "Welcome back!",
@@ -58,3 +65,10 @@ def dashboard(request):
         'notifications': notifications,
     }
     return render(request, 'workflow/dashboard.html', context)
+
+
+
+
+
+
+

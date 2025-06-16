@@ -18,7 +18,8 @@ class Task(models.Model):
     description = models.TextField(blank=True)
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='todo')
-    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='Medium')  # New field
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='Medium')
+    workload = models.PositiveIntegerField(default=1)  # Added workload field, default 1
     created_at = models.DateTimeField(auto_now_add=True)
     due_date = models.DateField(null=True, blank=True)
 

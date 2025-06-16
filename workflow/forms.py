@@ -7,13 +7,14 @@ from datetime import date
 class TaskForm(forms.ModelForm):
     class Meta:
         model = Task
-        fields = ['title', 'description', 'assigned_to', 'due_date', 'status']
+        fields = ['title', 'description', 'assigned_to', 'due_date', 'status', 'workload']  # Added workload
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'assigned_to': forms.Select(attrs={'class': 'form-select'}),
             'due_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
+            'workload': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -24,6 +25,9 @@ class TaskForm(forms.ModelForm):
             qs = qs.exclude(groups=admin_group)
         self.fields['assigned_to'].queryset = qs.order_by('username')
 
-
-    # 👇 This line ensures the date picker doesn't allow past dates
+        # Prevent past dates
         self.fields['due_date'].widget.attrs['min'] = date.today().isoformat()
+
+        # Optional: set initial workload value if needed
+        if not self.instance.pk:
+            self.fields['workload'].initial = 1

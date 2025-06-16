@@ -1,39 +1,37 @@
-import joblib
 import os
+import joblib
 import pandas as pd
+from datetime import date
 
-# This will get the root project directory (where manage.py is)
+# Base directory (adjust if needed)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# Path to ml_models folder
 MODEL_DIR = os.path.join(BASE_DIR, 'ml_models')
 
-# Load model and encoders once
+# Load model and encoders once when the module is imported
 model = joblib.load(os.path.join(MODEL_DIR, 'task_priority_model.joblib'))
 le_status = joblib.load(os.path.join(MODEL_DIR, 'status_encoder.joblib'))
 le_priority = joblib.load(os.path.join(MODEL_DIR, 'priority_encoder.joblib'))
+le_created_day = joblib.load(os.path.join(MODEL_DIR, 'created_day_encoder.joblib'))  # If you encoded created_day
 
-def predict_task_priority(status, due_date, pending_tasks):
-    import datetime
-    import pandas as pd
+def predict_task_priority(status, created_day, days_to_due, pending_tasks, workload, is_weekend_due, assigned_hour):
+    status_enc = le_status.transform([status])[0]
+    created_day_enc = le_created_day.transform([created_day])[0]
 
-    # Encode status
-    status_encoded = le_status.transform([status])[0]
+    data = {
+        'status_enc': [status_enc],
+        'days_to_due': [days_to_due],
+        'pending_tasks': [pending_tasks],
+        'workload': [workload],
+        'created_day_enc': [created_day_enc],
+        'is_weekend_due': [is_weekend_due],
+        'assigned_hour': [assigned_hour]
+    }
+    X_input = pd.DataFrame(data)
 
-    # Calculate days to due
-    today = datetime.date.today()
-    days_to_due = (due_date - today).days if due_date else 0
+    # Ensure columns are in the exact same order as training
+    X_input = X_input[['days_to_due', 'pending_tasks', 'workload', 'is_weekend_due', 'assigned_hour', 'status_enc', 'created_day_enc']]
 
-    # Create input DataFrame with the correct structure
-    X_input = pd.DataFrame([{
-        'days_to_due': days_to_due,
-        'pending_tasks': pending_tasks,
-        'status_enc': status_encoded
-    }])
 
-    # Predict
-    pred_encoded = model.predict(X_input)[0]
-    priority = le_priority.inverse_transform([pred_encoded])[0]
+    pred_enc = model.predict(X_input)[0]
+    priority = le_priority.inverse_transform([pred_enc])[0]
     return priority
-
-

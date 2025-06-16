@@ -5,13 +5,23 @@
 <div class="card shadow-sm p-4">
   <h2 class="mb-4 fw-bold">📋 Task List</h2>
 
+  <!-- Sorting dropdown -->
+  <form method="get" class="mb-3 d-flex align-items-center gap-2">
+    <label for="sort" class="form-label fw-bold mb-0">Sort by:</label>
+    <select name="sort" id="sort" class="form-select w-auto" onchange="this.form.submit()">
+      <option value="priority" {% if sort_by == 'priority' %}selected{% endif %}>Priority</option>
+      <option value="due_date" {% if sort_by == 'due_date' %}selected{% endif %}>Due Date</option>
+      <option value="status" {% if sort_by == 'status' %}selected{% endif %}>Status</option>
+    </select>
+  </form>
+
   <table class="table table-hover align-middle">
     <thead class="table-light">
       <tr>
         <th>Title</th>
         <th>Assigned To</th>
         <th>Status</th>
-        <th>Priority</th> <!-- Added Priority column -->
+        <th>Priority</th>
         <th>Due Date</th>
         <th>Action</th>
       </tr>
@@ -41,9 +51,7 @@
         </td>
         <td>{{ task.due_date|date:"M d, Y" }}</td>
         <td class="d-flex gap-2">
-          <a href="{% url 'update_task_status' task.id %}" class="btn btn-outline-primary btn-sm">
-            ✏️ Update
-          </a>
+          <a href="{% url 'update_task_status' task.id %}" class="btn btn-outline-primary btn-sm">✏️ Update</a>
 
           {% if request.user.is_superuser or request.user.groups.first.name == 'Manager' %}
             <form method="post" action="{% url 'delete_task' task.id %}" onsubmit="return confirm('Are you sure you want to delete this task?');">

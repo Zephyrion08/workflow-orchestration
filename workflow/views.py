@@ -1,10 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import Task
+from datetime import datetime, date
 from .forms import TaskForm
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from .ml_utils import predict_task_priority
+from django.db.models import Case, When, IntegerField
+
 
 def is_manager_or_admin(user):
     return user.is_superuser or user.groups.filter(name__in=['Manager']).exists()
@@ -17,15 +20,47 @@ def create_task(request):
         if form.is_valid():
             task = form.save(commit=False)
 
-            # Get features
             status = form.cleaned_data['status']
             due_date = form.cleaned_data['due_date']
-            pending_tasks = Task.objects.filter(assigned_to=task.assigned_to, status__in=['todo', 'in_progress']).count()
 
-            # Predict and assign priority
-            predicted_priority = predict_task_priority(status, due_date, pending_tasks)
+            # Calculate workload (number of pending tasks for assignee)
+            workload = Task.objects.filter(
+                assigned_to=task.assigned_to,
+                status__in=['todo', 'in_progress']
+            ).count()
+
+            # Calculate days_to_due
+            if due_date:
+                days_to_due = (due_date - date.today()).days
+                if days_to_due < 0:
+                    days_to_due = 0
+            else:
+                days_to_due = 0
+
+            # Get created_day string, e.g., 'Mon', 'Tue'
+            created_day = datetime.now().strftime('%a')
+
+            # Calculate is_weekend_due based on due_date
+            if due_date:
+                is_weekend_due = 1 if due_date.weekday() >= 5 else 0
+            else:
+                is_weekend_due = 0
+
+            # Assigned hour - could be current hour or from the form
+            assigned_hour = datetime.now().hour
+
+            # Call your prediction function with all needed params
+            predicted_priority = predict_task_priority(
+                status=status,
+                days_to_due=days_to_due,
+                pending_tasks=workload,  # or separate pending_tasks if you have that
+                workload=workload,
+                created_day=created_day,
+                is_weekend_due=is_weekend_due,
+                assigned_hour=assigned_hour
+            )
+
             task.priority = predicted_priority
-
             task.save()
             return redirect('task_list')
     else:
@@ -35,11 +70,37 @@ def create_task(request):
 
 @login_required
 def task_list(request):
+    sort_by = request.GET.get('sort', 'priority')  # default sort by priority
+
+    # Define priority order to sort by priority nicely
+    priority_ordering = Case(
+        When(priority='High', then=0),
+        When(priority='Medium', then=1),
+        When(priority='Low', then=2),
+        default=3,
+        output_field=IntegerField()
+    )
+
     if request.user.is_superuser or request.user.groups.filter(name='Manager').exists():
         tasks = Task.objects.all()
     else:
         tasks = Task.objects.filter(assigned_to=request.user)
-    return render(request, 'workflow/task_list.html', {'tasks': tasks})
+
+    # Apply sorting
+    if sort_by == 'priority':
+        tasks = tasks.order_by(priority_ordering, 'due_date')
+    elif sort_by == 'due_date':
+        tasks = tasks.order_by('due_date')
+    elif sort_by == 'status':
+        tasks = tasks.order_by('status')
+    else:
+        tasks = tasks.order_by('due_date')  # fallback
+
+    context = {
+        'tasks': tasks,
+        'sort_by': sort_by,
+    }
+    return render(request, 'workflow/task_list.html', context)
 
 @login_required
 def update_task_status(request, task_id):

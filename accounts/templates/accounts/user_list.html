@@ -4,45 +4,50 @@
 {% block content %}
 <div class="card shadow-sm p-4">
   <h2 class="mb-4">👥 All Users</h2>
-  <table class="table table-hover">
-    <thead class="table-light">
-      <tr>
-        <th>#</th>
-        <th>Name</th>
-        <th>Username</th>
-        <th>Employee ID</th>
-        <th>Department</th>
-        <th>Phone</th>
-        <th>Email</th>
-        <th>Role</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for user in users %}
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
         <tr>
-          <td>{{ forloop.counter }}</td>
-          <td>{{ user.name }}</td>
-          <td>@{{ user.username }}</td>
-          <td>{{ user.employee_id }}</td>
-          <td>{{ user.department|default:"—" }}</td>
-          <td>{{ user.phone_number|default:"—" }}</td>
-          <td>{{ user.email|default:"—" }}</td>
-          <td>
-            {% if user.is_superuser %}
-              <span class="badge bg-danger">Admin</span>
-            {% elif user.groups.first %}
-              <span class="badge bg-info">{{ user.groups.first.name }}</span>
-            {% else %}
-              <span class="badge bg-secondary">Member</span>
-            {% endif %}
-          </td>
+          <th scope="col">#</th>
+          <th scope="col">Name</th>
+          <th scope="col">Username</th>
+          <th scope="col">Employee ID</th>
+          <th scope="col">Department</th>
+          <th scope="col">Phone</th>
+          <th scope="col">Email</th>
+          <th scope="col">Role</th>
         </tr>
-      {% empty %}
-        <tr>
-          <td colspan="8" class="text-center text-muted">No users found.</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for user in users %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ user.name }}</td>
+            <td>@{{ user.username }}</td>
+            <td>{{ user.employee_id }}</td>
+            <td>{{ user.department|default:"—" }}</td>
+            <td>{{ user.phone_number|default:"—" }}</td>
+            <td>{{ user.email|default:"—" }}</td>
+            <td>
+              {% if user.is_superuser %}
+                <span class="badge bg-danger">Admin</span>
+              {% elif user.groups.first %}
+                <span class="badge bg-info text-dark">{{ user.groups.first.name }}</span>
+              {% else %}
+                <span class="badge bg-secondary">Member</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-muted fst-italic">
+              No users found.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

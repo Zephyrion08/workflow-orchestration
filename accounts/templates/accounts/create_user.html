@@ -2,37 +2,118 @@
 {% block title %}Create User{% endblock %}
 
 {% block content %}
-<h2 class="mb-4">Create User for {{ signup_req.name }} ({{ signup_req.employee_id }})</h2>
+<style>
+  /* Container centering and box style */
+  .form-container {
+    max-width: 440px;
+    margin: 40px auto;
+    padding: 30px;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    font-family: 'Poppins', sans-serif;
+  }
+  /* Header style */
+  .form-container h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #333;
+    font-weight: 600;
+  }
+  /* Input styling */
+  .form-control, .form-select {
+    width: 100%;
+    height: 55px;
+    padding: 0 25px;
+    font-size: 16px;
+    border-radius: 30px;
+    border: none;
+    box-shadow: 0px 5px 10px rgba(0,0,0,0.05);
+    outline: none;
+    transition: 0.3s ease;
+    margin-bottom: 20px;
+  }
+  .form-control:focus, .form-select:focus {
+    width: 105%;
+    box-shadow: 0px 5px 15px rgba(0,0,0,0.15);
+  }
+  /* Labels */
+  label.form-label {
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 8px;
+    display: block;
+    padding-left: 10px;
+  }
+  /* Buttons */
+  .btn-success, .btn-secondary {
+    width: 48%;
+    height: 50px;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s ease;
+  }
+  .btn-success {
+    background-color: #222;
+    border: none;
+    color: #fff;
+  }
+  .btn-success:hover {
+    background-color: #000;
+    transform: scale(1.05, 1);
+  }
+  .btn-secondary {
+    background-color: #aaa;
+    border: none;
+    color: #222;
+  }
+  .btn-secondary:hover {
+    background-color: #888;
+    color: #fff;
+  }
+  /* Buttons container */
+  .btn-group {
+    display: flex;
+    justify-content: space-between;
+  }
+  /* Messages */
+  .alert {
+    max-width: 440px;
+    margin: 10px auto 30px;
+  }
+</style>
 
-{% if messages %}
-  {% for message in messages %}
-    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-  {% endfor %}
-{% endif %}
+<div class="form-container">
+  <h2>Create User for {{ signup_req.name }} ({{ signup_req.employee_id }})</h2>
 
-<form method="post" class="w-50 mx-auto">
-  {% csrf_token %}
-  
-  <div class="mb-3">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    
     <label for="id_username" class="form-label">Username</label>
     <input type="text" id="id_username" name="username" class="form-control" required autofocus>
-  </div>
-  
-  <div class="mb-3">
+    
     <label for="id_password" class="form-label">Password</label>
     <input type="password" id="id_password" name="password" class="form-control" required>
-  </div>
-  
-  <div class="mb-3">
+    
     <label for="id_role" class="form-label">Role</label>
     <select id="id_role" name="role" class="form-select" required>
       <option value="Member" selected>Member</option>
       <option value="Manager">Manager</option>
       <option value="Admin">Admin</option>
     </select>
-  </div>
-  
-  <button type="submit" class="btn btn-success">Create User</button>
-  <a href="{% url 'pending_requests' %}" class="btn btn-secondary ms-2">Cancel</a>
-</form>
+    
+    <div class="btn-group">
+      <button type="submit" class="btn btn-success">Create User</button>
+      <a href="{% url 'pending_requests' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
 {% endblock %}

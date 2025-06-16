@@ -1,17 +1,39 @@
 {% extends 'accounts/base.html' %}
 {% block title %}Update Task{% endblock %}
+
 {% block content %}
-<h2>Update Task Status: {{ task.title }}</h2>
-<form method="post" class="w-50">
-  {% csrf_token %}
-  <div class="mb-3">
-    <label>Status</label>
-    <select name="status" class="form-select">
-      <option value="todo" {% if task.status == "todo" %}selected{% endif %}>To Do</option>
-      <option value="in_progress" {% if task.status == "in_progress" %}selected{% endif %}>In Progress</option>
-      <option value="done" {% if task.status == "done" %}selected{% endif %}>Done</option>
-    </select>
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+      <div class="card shadow-sm border-0 rounded-3">
+        <div class="card-body">
+          <h2 class="card-title mb-4 text-center fw-bold">Update Task Status</h2>
+          <p class="text-center text-muted">Task: <strong>{{ task.title }}</strong></p>
+
+          <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="status" class="form-label fw-semibold">Select Status</label>
+              <select name="status" id="status" class="form-select">
+                <option value="todo" {% if task.status == "todo" %}selected{% endif %}>📝 To Do</option>
+                <option value="in_progress" {% if task.status == "in_progress" %}selected{% endif %}>🚧 In Progress</option>
+                <option value="done" {% if task.status == "done" %}selected{% endif %}>✅ Done</option>
+              </select>
+            </div>
+
+            <div class="d-grid mt-4">
+              <button type="submit" class="btn btn-primary btn-lg">Update Status</button>
+            </div>
+          </form>
+
+          <div class="text-center mt-3">
+            <a href="{% url 'task_list' %}" class="text-decoration-none text-muted small">
+              ← Back to Task List
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-  <button type="submit" class="btn btn-primary">Update</button>
-</form>
+</div>
 {% endblock %}

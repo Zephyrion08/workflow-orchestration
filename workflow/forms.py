@@ -1,7 +1,8 @@
 from django import forms
 from django.contrib.auth.models import Group
 from .models import Task
-from accounts.models import CustomUser  # adjust import if needed
+from accounts.models import CustomUser
+from datetime import date
 
 class TaskForm(forms.ModelForm):
     class Meta:
@@ -22,3 +23,7 @@ class TaskForm(forms.ModelForm):
         if admin_group:
             qs = qs.exclude(groups=admin_group)
         self.fields['assigned_to'].queryset = qs.order_by('username')
+
+
+    # 👇 This line ensures the date picker doesn't allow past dates
+        self.fields['due_date'].widget.attrs['min'] = date.today().isoformat()

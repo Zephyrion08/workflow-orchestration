@@ -2,95 +2,106 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-  <h2>Dashboard</h2>
-  <p>Welcome, {{ request.user.get_full_name|default:request.user.username }}</p>
-
-  <p>Your roles:
-    {% if request.user.is_superuser %}
-      <span class="badge bg-danger">Admin</span>
-    {% else %}
-      {% for group in request.user.groups.all %}
-        <span class="badge bg-info">{{ group.name }}</span>
-      {% empty %}
-        <span class="badge bg-secondary">Member</span>
-      {% endfor %}
-    {% endif %}
-  </p>
+<div class="container my-5">
+  <div class="mb-4">
+    <h2 class="fw-bold">📊 Dashboard</h2>
+    <p class="text-muted">Welcome, {{ request.user.get_full_name|default:request.user.username }}</p>
+    <p>Your role: 
+      {% if request.user.is_superuser %}
+        <span class="badge bg-danger">Admin</span>
+      {% else %}
+        {% for group in request.user.groups.all %}
+          <span class="badge bg-info">{{ group.name }}</span>
+        {% empty %}
+          <span class="badge bg-secondary">Member</span>
+        {% endfor %}
+      {% endif %}
+    </p>
+  </div>
 
   {% if notifications %}
-  <div class="alert alert-info" role="alert">
-    <ul>
-      {% for note in notifications %}
-        <li>{{ note }}</li>
-      {% endfor %}
-    </ul>
-  </div>
+    <div class="alert alert-info shadow-sm">
+      <ul class="mb-0">
+        {% for note in notifications %}
+          <li>{{ note }}</li>
+        {% endfor %}
+      </ul>
+    </div>
   {% endif %}
 
-  <div class="row mb-4">
+  <div class="row g-3 mb-4">
     <div class="col-md-4">
-      <div class="card text-white bg-primary">
+      <div class="card border-0 shadow-sm text-center">
         <div class="card-body">
-          <h5 class="card-title">Total Tasks</h5>
-          <p class="card-text display-4">{{ total_tasks }}</p>
+          <h6 class="text-muted mb-2">Total Tasks</h6>
+          <h3 class="fw-bold text-primary">{{ total_tasks }}</h3>
         </div>
       </div>
     </div>
     <div class="col-md-4">
-      <div class="card text-white bg-warning">
+      <div class="card border-0 shadow-sm text-center">
         <div class="card-body">
-          <h5 class="card-title">Pending Tasks</h5>
-          <p class="card-text display-4">{{ pending_tasks }}</p>
+          <h6 class="text-muted mb-2">Pending Tasks</h6>
+          <h3 class="fw-bold text-warning">{{ pending_tasks }}</h3>
         </div>
       </div>
     </div>
     <div class="col-md-4">
-      <div class="card text-white bg-success">
+      <div class="card border-0 shadow-sm text-center">
         <div class="card-body">
-          <h5 class="card-title">Completed Tasks</h5>
-          <p class="card-text display-4">{{ completed_tasks }}</p>
+          <h6 class="text-muted mb-2">Completed Tasks</h6>
+          <h3 class="fw-bold text-success">{{ completed_tasks }}</h3>
         </div>
       </div>
     </div>
   </div>
 
-  {% if request.user.is_superuser %}
-    <a href="{% url 'create_task' %}" class="btn btn-primary me-2">Create Task</a>
-  {% endif %}
-  <a href="{% url 'task_list' %}" class="btn btn-secondary">View Tasks</a>
+  <div class="mb-4 d-flex flex-wrap gap-2">
+    {% if request.user.is_superuser %}
+      <a href="{% url 'create_task' %}" class="btn btn-primary">➕ Create Task</a>
+    {% endif %}
+    <a href="{% url 'task_list' %}" class="btn btn-outline-secondary">📋 View Tasks</a>
+  </div>
 
-  <!-- Chart.js Task Status Pie Chart -->
-  <canvas id="taskChart" width="400" height="400" aria-label="Task status chart" role="img"></canvas>
+  <div class="card border-0 shadow-sm p-4">
+    <h5 class="fw-semibold mb-3">Task Overview</h5>
+    <canvas id="taskChart" height="300" aria-label="Task status chart" role="img"></canvas>
+  </div>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
-    const ctx = document.getElementById('taskChart').getContext('2d');
-    const taskChart = new Chart(ctx, {
-      type: 'pie',
-      data: {
-        labels: ['Pending', 'Completed'],
-        datasets: [{
-          label: 'Task Status',
-          data: [{{ pending_tasks }}, {{ completed_tasks }}],
-          backgroundColor: [
-            'rgba(255, 193, 7, 0.7)',  // warning color
-            'rgba(40, 167, 69, 0.7)'   // success color
-          ],
-          borderColor: [
-            'rgba(255, 193, 7, 1)',
-            'rgba(40, 167, 69, 1)'
-          ],
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: 'bottom' }
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById('taskChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: ['Pending', 'Completed'],
+      datasets: [{
+        label: 'Task Status',
+        data: [{{ pending_tasks }}, {{ completed_tasks }}],
+        backgroundColor: [
+          'rgba(255, 193, 7, 0.6)',   // soft yellow
+          'rgba(40, 167, 69, 0.6)'    // soft green
+        ],
+        borderColor: [
+          'rgba(255, 193, 7, 1)',
+          'rgba(40, 167, 69, 1)'
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            boxWidth: 12,
+            padding: 20
+          }
         }
       }
-    });
-  </script>
-</div>
+    }
+  });
+</script>
 {% endblock %}

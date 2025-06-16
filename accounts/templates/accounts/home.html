@@ -2,14 +2,14 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-  <div class="card shadow-sm p-4">
+<div class="container mt-5" style="max-width: 700px;">
+  <div class="card shadow-sm p-4 rounded-4 border-0">
     <div class="d-flex align-items-center mb-3">
-      <div class="initial-circle member-circle fs-3 me-3" style="width:60px; height:60px;">
+      <div class="initial-circle member-circle fs-3 me-3" style="width: 60px; height: 60px;">
         {{ request.user.username|first|upper }}
       </div>
       <div>
-        <h3>
+        <h3 class="mb-1 fw-semibold text-dark">
           {% now "H" as hour %}
           {% if hour < "12" %}
             Good Morning,
@@ -18,14 +18,14 @@
           {% else %}
             Good Evening,
           {% endif %}
-
           {{ request.user.get_full_name|default:request.user.username }}!
         </h3>
-        <p class="text-muted">Welcome back to Workflow Orchestrator.</p>
+        <p class="text-muted mb-0">Welcome back to Workflow Orchestrator.</p>
       </div>
     </div>
 
-    <p>Your role: 
+    <p class="mb-4">
+      Your role: 
       {% if request.user.is_superuser %}
         <span class="badge bg-danger">Admin</span>
       {% elif request.user.groups.first %}
@@ -35,16 +35,15 @@
       {% endif %}
     </p>
 
-    <div class="mt-4">
-      <a href="{% url 'dashboard' %}" class="btn btn-primary me-2">Go to Dashboard</a>
-      <a href="{% url 'profile' %}" class="btn btn-outline-secondary me-2">Update Profile</a>
-      
+    <div class="mb-4">
+      <a href="{% url 'dashboard' %}" class="btn btn-primary me-2 px-4 py-2 fw-semibold rounded-pill shadow-sm">Go to Dashboard</a>
+      <a href="{% url 'profile' %}" class="btn btn-outline-secondary me-2 px-4 py-2 fw-semibold rounded-pill">Update Profile</a>
     </div>
 
     <!-- Optional: Add some summary info -->
-    <div class="mt-5">
-      <h5>Summary</h5>
-      <ul class="list-group">
+    <div>
+      <h5 class="fw-semibold mb-3">Summary</h5>
+      <ul class="list-group rounded-3 shadow-sm">
         <li class="list-group-item d-flex justify-content-between align-items-center">
           Pending Tasks
           <span class="badge bg-primary rounded-pill">{{ pending_tasks_count|default:"0" }}</span>

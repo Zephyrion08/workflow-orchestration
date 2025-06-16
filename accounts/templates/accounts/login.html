@@ -81,15 +81,18 @@
       .input-submit{
           position: relative;
       }
-      .submit-btn{
-          width: 100%;
-          height: 60px;
-          background: #222;
-          border: none;
-          border-radius: 30px;
-          cursor: pointer;
-          transition: .3s;
-      }
+      .submit-btn {
+        width: 100%;
+        height: 60px;
+        background: #222;
+        border: none;
+        border-radius: 30px;
+        cursor: pointer;
+        transition: .3s;
+        color: #fff;        /* <-- Add this */
+        font-weight: 600;   /* Optional */
+        font-size: 18px;    /* Optional */
+    }
       .input-submit label{
           position: absolute;
           top: 45%;
@@ -108,6 +111,13 @@
           text-align: center;
           font-size: 15px;
           margin-top: 20px;
+      }
+      .message {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 10px 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
       }
       .sign-up-link a{
           color: #000;
@@ -143,8 +153,7 @@
             </section>
         </div>
         <div class="input-submit">
-            <button class="submit-btn" id="submit"></button>
-            <label for="submit">Sign In</label>
+            <button type="submit" class="submit-btn">Sign In</button>
         </div>
         <div class="sign-up-link">
             <p>Don't have account? <a href="{% url 'signup_request' %}">Sign Up</a></p>

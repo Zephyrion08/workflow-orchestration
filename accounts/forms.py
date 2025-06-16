@@ -6,6 +6,14 @@ class SignupRequestForm(forms.ModelForm):
         model = SignupRequest
         fields = ['name', 'employee_id']
 
+    def clean_employee_id(self):
+        employee_id = self.cleaned_data['employee_id']
+        if SignupRequest.objects.filter(employee_id=employee_id).exists():
+            raise forms.ValidationError("This Employee ID has already been requested.")
+        if CustomUser.objects.filter(employee_id=employee_id).exists():
+            raise forms.ValidationError("This Employee ID is already registered.")
+        return employee_id
+
 class UserProfileForm(forms.ModelForm):
     class Meta:
         model = CustomUser

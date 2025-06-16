@@ -36,6 +36,9 @@ def signup_request_view(request):
             form.save()
             messages.success(request, "Signup request sent! Please wait for admin approval.")
             return redirect('signup_request')
+        else:
+            
+            messages.error(request, "There was an error with your submission. Please check the form below.")
     else:
         form = SignupRequestForm()
     return render(request, 'accounts/signup_request.html', {'form': form})

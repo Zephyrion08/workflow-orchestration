@@ -35,7 +35,7 @@ def create_task(request):
                 if days_to_due < 0:
                     days_to_due = 0
             else:
-                days_to_due = 0
+                days_to_due = 999  # Sentinel signaling no deadline pressure
 
             # Get created_day string, e.g., 'Mon', 'Tue'
             created_day = datetime.now().strftime('%a')
@@ -105,12 +105,48 @@ def task_list(request):
 @login_required
 def update_task_status(request, task_id):
     task = get_object_or_404(Task, id=task_id)
-    if request.user == task.assigned_to or request.user.is_superuser:
-        if request.method == 'POST':
-            status = request.POST.get('status')
-            task.status = status
-            task.save()
-            return redirect('task_list')
+
+    # Fix 2: expanded permission check to include Managers
+    is_manager = request.user.groups.filter(name='Manager').exists()
+    if not (request.user == task.assigned_to or request.user.is_superuser or is_manager):
+        messages.error(request, "You do not have permission to update this task.")
+        return redirect('task_list')
+
+    if request.method == 'POST':
+        new_status = request.POST.get('status')
+
+        # Fix 1: validate status against Task.STATUS_CHOICES
+        valid_statuses = [choice[0] for choice in Task.STATUS_CHOICES]
+        if new_status not in valid_statuses:
+            messages.error(request, "Invalid status value.")
+            return render(request, 'workflow/update_task.html', {'task': task})
+
+        task.status = new_status
+
+        # Fix 3: recalculate ML priority on status change
+        due_date = task.due_date
+        if due_date:
+            days_to_due = (due_date - date.today()).days
+            if days_to_due < 0:
+                days_to_due = 0
+        else:
+            days_to_due = 999  # Sentinel signaling no deadline pressure
+
+        workload = Task.objects.filter(
+            assigned_to=task.assigned_to,
+            status__in=['todo', 'in_progress']
+        ).exclude(pk=task.pk).count()
+
+        task.priority = predict_task_priority(
+            status=new_status,
+            days_to_due=days_to_due,
+            pending_tasks=workload,
+        )
+
+        task.save()
+        messages.success(request, "Task updated successfully.")
+        return redirect('task_list')
+
     return render(request, 'workflow/update_task.html', {'task': task})
 
 

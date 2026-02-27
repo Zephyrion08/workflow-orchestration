@@ -18,7 +18,7 @@ def home(request):
     user = request.user
     group = user.groups.first()  # Assumes one group per user
 
-    if user.is_superuser or (group and group.name.lower() == 'manager'):
+    if user.is_superuser or (group and group.name == 'Manager'):
         # Admins and Managers see all 'todo' or 'in_progress' tasks
         pending_tasks = Task.objects.filter(status__in=['todo', 'in_progress'])
     else:
@@ -68,6 +68,9 @@ def create_user_from_request(request, request_id):
 
         if CustomUser.objects.filter(username=username).exists():
             messages.error(request, "Username already exists.")
+        elif not password or len(password) < 8:
+            messages.error(request, "Password must be at least 8 characters.")
+            return render(request, 'accounts/create_user.html', {'signup_req': signup_req})
         else:
             user = CustomUser.objects.create(
                 username=username,
@@ -104,14 +107,16 @@ def login_view(request):
     return render(request, 'accounts/login.html')
 
 
+from django.views.decorators.http import require_POST
+
 @login_required
+@require_POST
 def logout_view(request):
     logout(request)
     return redirect('login')
 
 
-
-
+from django.contrib.auth import update_session_auth_hash
 
 @login_required
 def change_password_view(request):
@@ -126,8 +131,9 @@ def change_password_view(request):
             user.set_password(new_password)
             user.is_first_login = False
             user.save()
-            messages.success(request, "Password changed successfully. Please login again.")
-            return redirect('login')
+            update_session_auth_hash(request, user)  # keeps session valid
+            messages.success(request, "Password changed successfully.")
+            return redirect('profile')
 
     return render(request, 'accounts/change_password.html')
 
@@ -165,6 +171,7 @@ def user_list(request):
 
 @login_required
 @user_passes_test(is_admin)
+@require_POST
 def delete_signup_request(request, request_id):
     signup_request = get_object_or_404(SignupRequest, id=request_id)
     signup_request.delete()

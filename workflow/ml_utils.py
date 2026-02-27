@@ -1,20 +1,35 @@
 import os
 import joblib
 import pandas as pd
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Base directory (adjust if needed)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_DIR = os.path.join(BASE_DIR, 'ml_models')
 
 # Load model and encoders once when the module is imported
-model = joblib.load(os.path.join(MODEL_DIR, 'task_priority_model.joblib'))
-le_status = joblib.load(os.path.join(MODEL_DIR, 'status_encoder.joblib'))
-le_priority = joblib.load(os.path.join(MODEL_DIR, 'priority_encoder.joblib'))
+try:
+    model = joblib.load(os.path.join(MODEL_DIR, 'task_priority_model.joblib'))
+    le_status = joblib.load(os.path.join(MODEL_DIR, 'status_encoder.joblib'))
+    le_priority = joblib.load(os.path.join(MODEL_DIR, 'priority_encoder.joblib'))
+    ML_AVAILABLE = True
+except Exception as e:
+    logger.error(f"ML models failed to load: {e}")
+    ML_AVAILABLE = False
+
+# Consistent explicit fallback as recommended
+FALLBACK_STATUS = 'todo'
 
 def predict_task_priority(status, days_to_due, pending_tasks, **kwargs):
+    if not ML_AVAILABLE:
+        return 'Medium'  # Safe fallback if models are missing/corrupted
+        
     # Guard against previously unseen labels
     if status not in le_status.classes_:
-        status = le_status.classes_[0]  # fallback to first known class
+        logger.warning(f"Unknown status '{status}' passed to ML model, using fallback '{FALLBACK_STATUS}'.")
+        status = FALLBACK_STATUS
     
     status_enc = le_status.transform([status])[0]
     

@@ -6,8 +6,17 @@ class SignupRequestForm(forms.ModelForm):
         model = SignupRequest
         fields = ['name', 'employee_id']
 
+    def clean_name(self):
+        name = self.cleaned_data.get('name', '').strip()
+        if len(name) < 2:
+            raise forms.ValidationError("Name must be at least 2 characters.")
+        return name
+
     def clean_employee_id(self):
-        employee_id = self.cleaned_data['employee_id']
+        employee_id = self.cleaned_data.get('employee_id', '').strip()
+        if not employee_id.isalnum():
+            raise forms.ValidationError("Employee ID must be alphanumeric.")
+            
         if SignupRequest.objects.filter(employee_id=employee_id).exists():
             raise forms.ValidationError("This Employee ID has already been requested.")
         if CustomUser.objects.filter(employee_id=employee_id).exists():

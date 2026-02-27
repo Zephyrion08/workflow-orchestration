@@ -126,7 +126,7 @@ def dashboard(request):
         tasks = Task.objects.filter(assigned_to=user)
 
     total_tasks = tasks.count()
-    pending_tasks = Task.objects.filter(status__in=['todo', 'in_progress']).count()
+    pending_tasks = tasks.filter(status__in=['todo', 'in_progress']).count()
     completed_tasks = tasks.filter(status__iexact='done').count()
 
     notifications = [

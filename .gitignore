@@ -1,4 +1,36 @@
+# Built environments
 venv/
-*.pyc
+env/
+.venv/
+
+# Python compiled files
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Django specific
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
 migrations/
+
+# ML / Data Science
+
+Colab Notebooks/
+
+# Environment Variables
+.env
+.env.local
+
+# IDEs / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Claude Project Context (Local helper files)
+claude_project_context.txt
+update_claude_context.py

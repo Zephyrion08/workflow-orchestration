@@ -8,6 +8,10 @@ from django.views.decorators.http import require_POST
 from .ml_utils import predict_task_priority
 from django.db.models import Case, When, IntegerField
 
+import logging
+logger = logging.getLogger(__name__)
+logger.debug(f"ML inputs — status: {status}, days_to_due: {days_to_due}, workload: {workload}, predicted: {predicted_priority}")
+
 
 def is_manager_or_admin(user):
     return user.is_superuser or user.groups.filter(name__in=['Manager']).exists()

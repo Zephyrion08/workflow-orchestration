@@ -34,3 +34,5 @@ Thumbs.db
 # Claude Project Context (Local helper files)
 claude_project_context.txt
 update_claude_context.py
+
+retrain_model.py

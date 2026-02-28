@@ -8,13 +8,48 @@ from django.views.decorators.http import require_POST
 from .ml_utils import predict_task_priority
 from django.db.models import Case, When, IntegerField
 
-import logging
-logger = logging.getLogger(__name__)
-logger.debug(f"ML inputs — status: {status}, days_to_due: {days_to_due}, workload: {workload}, predicted: {predicted_priority}")
 
+
+
+
+from accounts.models import CustomUser
 
 def is_manager_or_admin(user):
     return user.is_superuser or user.groups.filter(name__in=['Manager']).exists()
+
+@login_required
+@user_passes_test(is_manager_or_admin)
+def manager_dashboard(request):
+    tasks = Task.objects.all()
+
+    total_tasks = tasks.count()
+    pending_tasks = tasks.filter(status__in=['todo', 'in_progress']).count()
+    completed_tasks = tasks.filter(status='done').count()
+    total_users = CustomUser.objects.filter(is_superuser=False).count()
+
+    # Status chart data
+    todo_count = tasks.filter(status='todo').count()
+    in_progress_count = tasks.filter(status='in_progress').count()
+    done_count = tasks.filter(status='done').count()
+
+    # Priority chart data
+    high_count = tasks.filter(priority='High').count()
+    medium_count = tasks.filter(priority='Medium').count()
+    low_count = tasks.filter(priority='Low').count()
+
+    context = {
+        'total_tasks': total_tasks,
+        'pending_tasks': pending_tasks,
+        'completed_tasks': completed_tasks,
+        'total_users': total_users,
+        'todo_count': todo_count,
+        'in_progress_count': in_progress_count,
+        'done_count': done_count,
+        'high_count': high_count,
+        'medium_count': medium_count,
+        'low_count': low_count,
+    }
+    return render(request, 'workflow/manager_dashboard.html', context)
 
 @login_required
 @user_passes_test(is_manager_or_admin)

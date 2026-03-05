@@ -57,7 +57,7 @@ def predict_best_assignee(users, days_to_due, priority):
     """
     if not ASSIGNMENT_ML_AVAILABLE:
         logger.warning("Assignment model unavailable, falling back to first user.")
-        return users[0], {}
+        return (users[0], {}) if users else (None, {})
 
     if priority not in le_assign_priority.classes_:
         priority = 'Medium'
@@ -107,7 +107,7 @@ def predict_best_assignee(users, days_to_due, priority):
 
     if not scores:
         logger.warning("No scoreable users, falling back to first user.")
-        return users[0], {}
+        return (users[0], {}) if users else (None, {})
 
     best_username = max(scores, key=lambda u: scores[u]['final_score'])
     return scores[best_username]['user'], scores

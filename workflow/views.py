@@ -116,13 +116,16 @@ def create_task(request):
                 )
 
             task.save()
-            messages.success(
-                request,
-                f"Task created and auto-assigned to {task.assigned_to.username}."
-            )
+            if task.assigned_to:
+                messages.success(
+                    request,
+                    f"Task created and auto-assigned to {task.assigned_to.username}."
+                )
+            else:
+                messages.success(request, "Task created successfully (no assignee available).")
             return redirect('task_list')
     else:
-        form = TaskForm(request.POST or None)
+        form = TaskForm()
 
     return render(request, 'workflow/create_task.html', {'form': form})
 
@@ -246,7 +249,7 @@ def dashboard(request):
 
     total_tasks = tasks.count()
     pending_tasks = tasks.filter(status__in=['todo', 'in_progress']).count()
-    completed_tasks = tasks.filter(status__iexact='done').count()
+    completed_tasks = tasks.filter(status='done').count()
 
     notifications = [
         "Welcome back!",
@@ -282,27 +285,30 @@ def delete_task(request, pk):
 @user_passes_test(is_manager_or_admin)
 def edit_task(request, pk):
     task = get_object_or_404(Task, pk=pk)
-    form = TaskForm(request.POST or None, instance=task)
-    if form.is_valid():
-        task = form.save(commit=False)
+    if request.method == 'POST':
+        form = TaskForm(request.POST, instance=task)
+        if form.is_valid():
+            task = form.save(commit=False)
 
-        due_date = task.due_date
-        if due_date:
-            days_to_due = max((due_date - date.today()).days, 0)
-        else:
-            days_to_due = 999
+            due_date = task.due_date
+            if due_date:
+                days_to_due = max((due_date - date.today()).days, 0)
+            else:
+                days_to_due = 999
 
-        workload = Task.objects.filter(
-            assigned_to=task.assigned_to,
-            status__in=['todo', 'in_progress']
-        ).exclude(pk=task.pk).count()
+            workload = Task.objects.filter(
+                assigned_to=task.assigned_to,
+                status__in=['todo', 'in_progress']
+            ).exclude(pk=task.pk).count()
 
-        task.priority = predict_task_priority(
-            status=task.status,
-            days_to_due=days_to_due,
-            pending_tasks=workload,
-        )
-        task.save()
-        messages.success(request, "Task updated successfully.")
-        return redirect('task_list')
+            task.priority = predict_task_priority(
+                status=task.status,
+                days_to_due=days_to_due,
+                pending_tasks=workload,
+            )
+            task.save()
+            messages.success(request, "Task updated successfully.")
+            return redirect('task_list')
+    else:
+        form = TaskForm(instance=task)
     return render(request, 'workflow/edit_task.html', {'form': form, 'task': task})

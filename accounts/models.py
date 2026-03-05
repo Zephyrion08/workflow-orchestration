@@ -9,7 +9,7 @@ class CustomUser(AbstractUser):
     is_first_login = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.username} "
+        return f"{self.username}"
 
 
 class SignupRequest(models.Model):

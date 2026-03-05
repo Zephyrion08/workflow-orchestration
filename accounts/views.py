@@ -1,16 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .forms import SignupRequestForm, UserProfileForm
-from .models import SignupRequest, CustomUser
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import Group
 from django.contrib.auth.hashers import make_password
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.views.decorators.http import require_POST
+from .forms import SignupRequestForm, UserProfileForm
+from .models import SignupRequest, CustomUser
 from workflow.models import Task
-from .models import CustomUser
-from django.contrib.auth.models import Group
 
 
 @login_required
@@ -37,7 +34,6 @@ def signup_request_view(request):
             messages.success(request, "Signup request sent! Please wait for admin approval.")
             return redirect('signup_request')
         else:
-            
             messages.error(request, "There was an error with your submission. Please check the form below.")
     else:
         form = SignupRequestForm()
@@ -52,7 +48,7 @@ def is_admin(user):
 @login_required
 @user_passes_test(is_admin)
 def pending_requests_view(request):
-    requests = SignupRequest.objects.all()
+    requests = SignupRequest.objects.all().order_by('created_at')
     return render(request, 'accounts/pending_requests.html', {'requests': requests})
 
 
@@ -68,6 +64,7 @@ def create_user_from_request(request, request_id):
 
         if CustomUser.objects.filter(username=username).exists():
             messages.error(request, "Username already exists.")
+            return render(request, 'accounts/create_user.html', {'signup_req': signup_req})
         elif not password or len(password) < 8:
             messages.error(request, "Password must be at least 8 characters.")
             return render(request, 'accounts/create_user.html', {'signup_req': signup_req})
@@ -107,8 +104,6 @@ def login_view(request):
     return render(request, 'accounts/login.html')
 
 
-from django.views.decorators.http import require_POST
-
 @login_required
 @require_POST
 def logout_view(request):
@@ -116,15 +111,15 @@ def logout_view(request):
     return redirect('login')
 
 
-from django.contrib.auth import update_session_auth_hash
-
 @login_required
 def change_password_view(request):
     if request.method == 'POST':
         new_password = request.POST.get('new_password')
         confirm_password = request.POST.get('confirm_password')
 
-        if new_password != confirm_password:
+        if not new_password or len(new_password) < 8:
+            messages.error(request, "Password must be at least 8 characters.")
+        elif new_password != confirm_password:
             messages.error(request, "Passwords do not match.")
         else:
             user = request.user
@@ -142,7 +137,6 @@ def change_password_view(request):
 def profile_view(request):
     user = request.user
     return render(request, 'accounts/profile.html', {'user': user})
-
 
 
 @login_required

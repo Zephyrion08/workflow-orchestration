@@ -138,3 +138,9 @@ LOGOUT_REDIRECT_URL = 'login'
 # django-axes Configuration
 AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = 1  # 1 hour lockout
+AXES_LOCKOUT_PARAMETERS = ['ip_address']
+
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]

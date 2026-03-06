@@ -48,8 +48,8 @@ def is_admin(user):
 @login_required
 @user_passes_test(is_admin)
 def pending_requests_view(request):
-    requests = SignupRequest.objects.all().order_by('created_at')
-    return render(request, 'accounts/pending_requests.html', {'requests': requests})
+    signup_requests = SignupRequest.objects.all().order_by('created_at')
+    return render(request, 'accounts/pending_requests.html', {'requests': signup_requests})
 
 
 @login_required
@@ -88,6 +88,9 @@ def create_user_from_request(request, request_id):
 
 
 def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('home')
+
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')

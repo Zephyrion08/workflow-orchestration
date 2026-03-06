@@ -21,5 +21,8 @@ class TaskForm(forms.ModelForm):
     def clean_due_date(self):
         due_date = self.cleaned_data.get('due_date')
         if due_date and due_date < date.today():
-            raise forms.ValidationError("Due date cannot be in the past.")
+            # Allow editing an existing task whose due_date is already past
+            original = getattr(self.instance, 'due_date', None)
+            if due_date != original:
+                raise forms.ValidationError("Due date cannot be in the past.")
         return due_date

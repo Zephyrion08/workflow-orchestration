@@ -240,8 +240,8 @@ def update_task_status(request, task_id):
 def dashboard(request):
     user = request.user
 
-    if user.is_superuser:
-        # Admin sees all tasks
+    if user.is_superuser or user.groups.filter(name='Manager').exists():
+        # Admin and Managers see all tasks
         tasks = Task.objects.all()
     else:
         # Regular user sees only their assigned tasks
@@ -306,6 +306,7 @@ def edit_task(request, pk):
                 days_to_due=days_to_due,
                 pending_tasks=workload,
             )
+            task.workload = workload
             task.save()
             messages.success(request, "Task updated successfully.")
             return redirect('task_list')

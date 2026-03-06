@@ -2,6 +2,8 @@ import os
 import joblib
 import pandas as pd
 import logging
+from typing import List, Tuple, Dict, Any, Optional
+from django.db.models import Model  # For CustomUser type hint
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +32,11 @@ except Exception as e:
 FALLBACK_STATUS = 'todo'
 
 
-def predict_task_priority(status, days_to_due, pending_tasks, **kwargs):
+def predict_task_priority(status: str, days_to_due: int, pending_tasks: int, **kwargs: Any) -> str:
+    """
+    Predicts the priority of a task (High, Medium, Low) based on its status, 
+    due date proximity, and the assignee's current workload using the trained ML model.
+    """
     if not ML_AVAILABLE:
         return 'Medium'
 
@@ -50,10 +56,13 @@ def predict_task_priority(status, days_to_due, pending_tasks, **kwargs):
     return le_priority.inverse_transform([pred_enc])[0]
 
 
-def predict_best_assignee(users, days_to_due, priority):
+def predict_best_assignee(users: List[Any], days_to_due: int, priority: str) -> Tuple[Optional[Any], Dict[str, Any]]:
     """
-    Scores every user purely on situational features — no username encoding.
-    Works for any user including brand new accounts with no history.
+    Scores every user purely on situational features (workload, task priority) to determine
+    the best candidate for assignment. Works natively with new accounts bypassing history reliance.
+    
+    Returns:
+        Tuple containing the optimal CustomUser (or None) and a dictionary of prediction scores.
     """
     if not ASSIGNMENT_ML_AVAILABLE:
         logger.warning("Assignment model unavailable, falling back to first user.")

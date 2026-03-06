@@ -7,10 +7,12 @@ import datetime as dt_module
 from .forms import TaskForm
 from django.contrib import messages
 from django.views.decorators.http import require_POST
-from .ml_utils import predict_task_priority, predict_best_assignee
 from django.db.models import Case, When, IntegerField, Q
 from django.core.paginator import Paginator
 import logging
+
+from .services import assign_task_and_set_priority, recalculate_task_priority
+from .tasks import assign_and_score_task_async, recalculate_task_priority_async
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +24,7 @@ def is_manager_or_admin(user):
 @login_required
 @user_passes_test(is_manager_or_admin)
 def manager_dashboard(request):
-    tasks = Task.objects.all()
+    tasks = Task.objects.select_related('assigned_to').all()
 
     total_tasks = tasks.count()
     pending_tasks = tasks.filter(status__in=['todo', 'in_progress']).count()
@@ -59,70 +61,10 @@ def create_task(request):
     if request.method == 'POST':
         form = TaskForm(request.POST)
         if form.is_valid():
-            task = form.save(commit=False)
+            task = form.save()
+            assign_and_score_task_async.delay(task.id)
 
-            status = form.cleaned_data['status']
-            due_date = form.cleaned_data['due_date']
-
-            if due_date:
-                days_to_due = (due_date - date.today()).days
-                days_to_due = max(days_to_due, 0)
-            else:
-                days_to_due = 999
-
-            # Initial priority prediction (assignee unknown yet)
-            task.priority = predict_task_priority(
-                status=status,
-                days_to_due=days_to_due,
-                pending_tasks=0,
-            )
-
-            # Auto-assign using assignment engine
-            from django.contrib.auth.models import Group
-
-            admin_group = Group.objects.filter(name='Admin').first()
-            candidates = CustomUser.objects.filter(
-                is_active=True,
-                is_superuser=False
-            )
-            if admin_group:
-                candidates = candidates.exclude(groups=admin_group)
-            candidates = list(candidates)
-
-            if candidates:
-                best_user, scores = predict_best_assignee(
-                    users=candidates,
-                    days_to_due=days_to_due,
-                    priority=task.priority,
-                )
-                task.assigned_to = best_user
-
-                # Recalculate priority with real assignee workload
-                workload = Task.objects.filter(
-                    assigned_to=best_user,
-                    status__in=['todo', 'in_progress']
-                ).count()
-
-                task.priority = predict_task_priority(
-                    status=status,
-                    days_to_due=days_to_due,
-                    pending_tasks=workload,
-                )
-                task.workload = workload
-
-                logger.info(
-                    f"Auto-assigned '{task.title}' to {best_user.username} "
-                    f"| scores: {scores}"
-                )
-
-            task.save()
-            if task.assigned_to:
-                messages.success(
-                    request,
-                    f"Task created and auto-assigned to {task.assigned_to.username}."
-                )
-            else:
-                messages.success(request, "Task created successfully (no assignee available).")
+            messages.success(request, "Task created! The ML assignment engine is evaluating candidates in the background.")
             return redirect('task_list')
     else:
         form = TaskForm()
@@ -143,9 +85,9 @@ def task_list(request):
     )
 
     if request.user.is_superuser or request.user.groups.filter(name='Manager').exists():
-        tasks = Task.objects.all()
+        tasks = Task.objects.select_related('assigned_to').all()
     else:
-        tasks = Task.objects.filter(assigned_to=request.user)
+        tasks = Task.objects.select_related('assigned_to').filter(assigned_to=request.user)
 
     # Apply search filter
     query = request.GET.get('q', '')
@@ -211,25 +153,16 @@ def update_task_status(request, task_id):
             else:
                 task.was_on_time = True  # no due date = can't be late
 
-        # Recalculate priority on status change
-        due_date = task.due_date
-        if due_date:
-            days_to_due = max((due_date - date.today()).days, 0)
-        else:
-            days_to_due = 999
-
-        workload = Task.objects.filter(
-            assigned_to=task.assigned_to,
-            status__in=['todo', 'in_progress']
-        ).exclude(pk=task.pk).count()
-
-        task.priority = predict_task_priority(
-            status=new_status,
-            days_to_due=days_to_due,
-            pending_tasks=workload,
-        )
-
         task.save()
+
+        # Recalculate priority on status change asynchronously
+        recalculate_task_priority_async.delay(task.id)
+
+        if request.headers.get('HX-Request'):
+            # Return just the updated row for HTMX
+            # We must fetch it fresh to ensure priority is accurate if sync
+            return render(request, 'workflow/task_row_partial.html', {'task': task})
+
         messages.success(request, "Task updated successfully.")
         return redirect('task_list')
 
@@ -242,10 +175,10 @@ def dashboard(request):
 
     if user.is_superuser or user.groups.filter(name='Manager').exists():
         # Admin and Managers see all tasks
-        tasks = Task.objects.all()
+        tasks = Task.objects.select_related('assigned_to').all()
     else:
         # Regular user sees only their assigned tasks
-        tasks = Task.objects.filter(assigned_to=user)
+        tasks = Task.objects.select_related('assigned_to').filter(assigned_to=user)
 
     total_tasks = tasks.count()
     pending_tasks = tasks.filter(status__in=['todo', 'in_progress']).count()
@@ -288,26 +221,9 @@ def edit_task(request, pk):
     if request.method == 'POST':
         form = TaskForm(request.POST, instance=task)
         if form.is_valid():
-            task = form.save(commit=False)
+            task = form.save()
+            recalculate_task_priority_async.delay(task.id)
 
-            due_date = task.due_date
-            if due_date:
-                days_to_due = max((due_date - date.today()).days, 0)
-            else:
-                days_to_due = 999
-
-            workload = Task.objects.filter(
-                assigned_to=task.assigned_to,
-                status__in=['todo', 'in_progress']
-            ).exclude(pk=task.pk).count()
-
-            task.priority = predict_task_priority(
-                status=task.status,
-                days_to_due=days_to_due,
-                pending_tasks=workload,
-            )
-            task.workload = workload
-            task.save()
             messages.success(request, "Task updated successfully.")
             return redirect('task_list')
     else:

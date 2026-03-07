@@ -4,7 +4,7 @@ from .models import Task
 from datetime import datetime, date
 from django.utils import timezone
 import datetime as dt_module
-from .forms import TaskForm
+from .forms import TaskForm, CommentForm
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.db.models import Case, When, IntegerField, Q
@@ -167,6 +167,76 @@ def update_task_status(request, task_id):
         return redirect('task_list')
 
     return render(request, 'workflow/update_task.html', {'task': task})
+
+@login_required
+def kanban_board(request):
+    if request.user.is_superuser or request.user.groups.filter(name='Manager').exists():
+        tasks = Task.objects.select_related('assigned_to').all()
+    else:
+        tasks = Task.objects.select_related('assigned_to').filter(assigned_to=request.user)
+
+    # Note: SortableJS requires ordering by priority or due_date 
+    # but grouping by status is the core Kanban concept
+    tasks = tasks.order_by('priority', 'due_date')
+
+    context = {
+        'tasks': tasks
+    }
+    return render(request, 'workflow/kanban_board.html', context)
+
+@login_required
+@require_POST
+def update_task_status_htmx(request, pk):
+    task = get_object_or_404(Task, pk=pk)
+    
+    is_manager = request.user.groups.filter(name='Manager').exists()
+    if not (request.user == task.assigned_to or request.user.is_superuser or is_manager):
+        return render(request, 'workflow/kanban_task_card_partial.html', {'task': task}) # Return original silently
+
+    new_status = request.POST.get('status')
+    valid_statuses = [choice[0] for choice in Task.STATUS_CHOICES]
+    
+    if new_status in valid_statuses and task.status != new_status:
+        task.status = new_status
+        if new_status == 'done':
+            now = timezone.now()
+            task.completed_at = now
+            if task.due_date:
+                due_datetime = timezone.make_aware(
+                    dt_module.datetime.combine(task.due_date, dt_module.time.max)
+                )
+                task.was_on_time = now <= due_datetime
+            else:
+                task.was_on_time = True
+        
+        task.save()
+        recalculate_task_priority_async.delay(task.id)
+
+    return render(request, 'workflow/kanban_task_card_partial.html', {'task': task})
+
+@login_required
+def task_detail(request, pk):
+    task = get_object_or_404(Task, pk=pk)
+    comments = task.comments.select_related('author').all()
+    
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.task = task
+            comment.author = request.user
+            comment.save()
+            messages.success(request, "Comment added.")
+            return redirect('task_detail', pk=task.pk)
+    else:
+        form = CommentForm()
+
+    context = {
+        'task': task,
+        'comments': comments,
+        'form': form
+    }
+    return render(request, 'workflow/task_detail.html', context)
 
 
 @login_required

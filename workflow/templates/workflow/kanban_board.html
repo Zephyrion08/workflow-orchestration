@@ -1,0 +1,165 @@
+{% extends 'accounts/base.html' %}
+{% load static %}
+
+{% block title %}Kanban Board{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4 align-items-center">
+        <div class="col">
+            <h2 class="mb-0 fw-bold">🚀 Kanban Board</h2>
+            <p class="text-muted mb-0">Drag and drop tasks to update their status.</p>
+        </div>
+        <div class="col-auto">
+             <a href="{% url 'create_task' %}" class="btn btn-primary shadow-sm"><i class="bi bi-plus-lg me-1"></i> New Task</a>
+        </div>
+    </div>
+
+    <div class="row g-4 kanban-container overflow-auto flex-nowrap pb-4" style="min-height: 60vh;">
+        <!-- To Do Column -->
+        <div class="col-12 col-md-6 col-lg-4" style="min-width: 350px;">
+            <div class="card bg-light border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom-0 py-3">
+                    <h5 class="mb-0 d-flex justify-content-between align-items-center fw-bold text-secondary">
+                        <span class="d-flex align-items-center"><i class="bi bi-circle text-secondary me-2"></i> To Do</span>
+                        <span class="badge bg-secondary rounded-pill" id="todo-count">
+                            {{ tasks|length|default:0 }} <!-- Ideally, this count should be accurate per column. For simplicity, client JS will update it -->
+                        </span>
+                    </h5>
+                </div>
+                <div class="card-body p-2 bucket" id="todo" data-status="todo" style="min-height: 200px;">
+                    {% for task in tasks %}
+                        {% if task.status == 'todo' %}
+                            {% include 'workflow/kanban_task_card_partial.html' %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- In Progress Column -->
+        <div class="col-12 col-md-6 col-lg-4" style="min-width: 350px;">
+            <div class="card bg-light border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom-0 py-3">
+                    <h5 class="mb-0 d-flex justify-content-between align-items-center fw-bold text-primary">
+                        <span class="d-flex align-items-center"><i class="bi bi-play-circle-fill text-primary me-2"></i> In Progress</span>
+                        <span class="badge bg-primary rounded-pill" id="inprogress-count">0</span>
+                    </h5>
+                </div>
+                <div class="card-body p-2 bucket" id="in_progress" data-status="in_progress" style="min-height: 200px;">
+                    {% for task in tasks %}
+                        {% if task.status == 'in_progress' %}
+                            {% include 'workflow/kanban_task_card_partial.html' %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Done Column -->
+        <div class="col-12 col-md-6 col-lg-4" style="min-width: 350px;">
+            <div class="card bg-light border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom-0 py-3">
+                    <h5 class="mb-0 d-flex justify-content-between align-items-center fw-bold text-success">
+                        <span class="d-flex align-items-center"><i class="bi bi-check-circle-fill text-success me-2"></i> Done</span>
+                        <span class="badge bg-success rounded-pill" id="done-count">0</span>
+                    </h5>
+                </div>
+                <div class="card-body p-2 bucket" id="done" data-status="done" style="min-height: 200px;">
+                    {% for task in tasks %}
+                        {% if task.status == 'done' %}
+                            {% include 'workflow/kanban_task_card_partial.html' %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+<style>
+    /* Styling for the drop zone when dragging over */
+    .bucket.sortable-ghost {
+        background-color: #e9ecef;
+        border-radius: 8px;
+    }
+    
+    .sortable-drag {
+        opacity: 0.9;
+    }
+    
+    .sortable-chosen {
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+        transform: scale(1.02);
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function updateCounts() {
+        document.getElementById('todo-count').innerText = document.getElementById('todo').children.length;
+        document.getElementById('inprogress-count').innerText = document.getElementById('in_progress').children.length;
+        document.getElementById('done-count').innerText = document.getElementById('done').children.length;
+    }
+
+    // Initialize counts on load
+    updateCounts();
+
+    const buckets = document.querySelectorAll('.bucket');
+    
+    buckets.forEach(bucket => {
+        new Sortable(bucket, {
+            group: 'shared', // set both lists to same group
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            dragClass: 'sortable-drag',
+            chosenClass: 'sortable-chosen',
+            onEnd: function (evt) {
+                updateCounts();
+                const itemEl = evt.item;  // dragged HTMLElement
+                const newStatus = evt.to.getAttribute('data-status'); // target list
+                const oldStatus = evt.from.getAttribute('data-status');
+                
+                if (newStatus !== oldStatus) {
+                    const taskId = itemEl.getAttribute('data-task-id');
+                    
+                    // Create form data to send to server
+                    const formData = new FormData();
+                    formData.append('status', newStatus);
+                    
+                    // HTMX is powerful, but since we are initiating from SortableJS event,
+                    // we can manually trigger an HTMX request or use fetch.
+                    // Here we use fetch with HTMX headers so the server returns the partial component
+                    fetch(`/tasks/${taskId}/status/htmx/`, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'HX-Request': 'true'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.text();
+                    })
+                    .then(html => {
+                        // We replace the outerHTML of the item with the fresh rendered card
+                        // This ensures badges, borders, and styles match the new status
+                        itemEl.outerHTML = html;
+                    })
+                    .catch(error => {
+                        console.error('Error updating task status:', error);
+                        // Revert the drag operation visually if it failed by reloading or moving back
+                        alert("Failed to update task status. Please try again.");
+                    });
+                }
+            },
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,5 +1,5 @@
 from django import forms
-from .models import Task
+from .models import Task, Comment
 from datetime import date
 
 
@@ -26,3 +26,14 @@ class TaskForm(forms.ModelForm):
             if due_date != original:
                 raise forms.ValidationError("Due date cannot be in the past.")
         return due_date
+
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = ['text']
+        widgets = {
+            'text': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Leave a comment...'}),
+        }
+        labels = {
+            'text': ''
+        }

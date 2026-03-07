@@ -1,6 +1,6 @@
 <!-- workflow/templates/workflow/task_row_partial.html -->
 <tr id="task-row-{{ task.id }}">
-    <td>{{ task.title }}</td>
+    <td><a href="{% url 'task_detail' task.pk %}" class="text-decoration-none fw-bold text-primary">{{ task.title }}</a></td>
     <td>@{{ task.assigned_to.username }}</td>
     <td>
       <!-- HTMX inline status update form -->
